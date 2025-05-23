@@ -1,0 +1,4 @@
+[submodule "scripts/utils/y2j"]
+	path = scripts/utils/y2j
+	url = https://github.com/gonoph/y2j.git
+	branch = 1.0.0
