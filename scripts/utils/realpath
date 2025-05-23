@@ -1,0 +1,10 @@
+#!/usr/bin/env python3
+
+from os.path import realpath
+from sys import argv,stdout,stderr,exit
+
+if len(argv[1:]) != 1:
+    print("Usage: realpath <path>\n", file=stderr)
+    exit(1)
+
+print(realpath(argv[1]))
