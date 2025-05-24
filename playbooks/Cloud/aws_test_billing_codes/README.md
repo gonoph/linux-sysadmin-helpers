@@ -11,7 +11,7 @@ When you run it, it will error if any instances are not BYOS.
 
 ```bash
 # setup BOTO3 credentials - not in scope for these instructions
-ansible-galaxy install -r ./collections/requirements.yml
+ansible-galaxy install amazon.aws
 ansible-playbook -i inventory.aws_ec2.yml aws_test_billing_codes.yml
 ```
 
