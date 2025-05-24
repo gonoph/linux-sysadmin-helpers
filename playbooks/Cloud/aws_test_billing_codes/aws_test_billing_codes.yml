@@ -1,0 +1,33 @@
+# vim: sw=2 ts=2 ai expandtab
+---
+
+- name: Check AWS Images for pricing
+  hosts: all
+  connection: local
+  gather_facts: false
+  become: false
+  vars:
+    GoodInstances:
+      - RunInstances
+      - RunInstances:00g0
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+
+  tasks:
+    - name: get ami information 
+      amazon.aws.ec2_ami_info:
+        image_ids: "{{ image_id }}"
+        region: "{{ placement.region }}"
+      register: ami_info
+
+    - debug:
+        var: ami_info
+      when: 
+        - debug is defined
+        - debug == True
+
+    - name: ensure ami usage
+      assert:
+        that:
+          - ami_info is defined
+          - ami_info.images is defined
+          - ami_info.images | selectattr('usage_operation', 'in', GoodInstances) | list | length

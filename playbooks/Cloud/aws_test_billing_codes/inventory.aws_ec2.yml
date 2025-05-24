@@ -1,0 +1,13 @@
+---
+compose:
+  ansible_host: public_ip_address
+filters:
+  instance-state-name:
+  - running
+groups:
+  ec2: false
+hostnames:
+- tag:Name
+plugin: amazon.aws.aws_ec2
+regions: []
+use_contrib_script_compatible_sanitization: false

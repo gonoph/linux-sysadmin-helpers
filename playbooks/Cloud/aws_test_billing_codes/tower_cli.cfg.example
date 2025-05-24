@@ -1,0 +1,4 @@
+[general]
+host = https://localhost
+verify_ssl = true
+oauth_token = LEdCpKVKc4znzffcpQL5vLG8oyeku6

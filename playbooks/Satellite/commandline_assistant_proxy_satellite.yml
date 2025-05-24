@@ -1,0 +1,49 @@
+---
+# based on documentation https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html-single/interacting_with_the_command-line_assistant_powered_by_rhel_lightspeed/index#provisioning-the-command-line-assistant-to-rhel-deployments-with-red-hat-satellite
+# this works for RHEL 10 and RHEL 9.6
+
+- name: playbook to modify command-line assistant to proxy through the Satellite server
+  hosts: all
+    # connection: smart
+  become: true
+  gather_facts: false
+  vars:
+    cla_hostname: cert.console.redhat.com
+    cdn_hostname: subscription.rhsm.redhat.com
+    cla_endpoint: "https://{{ cla_hostname }}/api/lightspeed/v1"
+
+  handlers:
+    - name: restart clad
+      ansible.builtin.systemd_service:
+        name: clad
+        state: restarted
+
+  tasks:
+    - name: gather list of installed packages
+      ansible.builtin.package_facts:
+        manager: auto
+
+    - assert:
+        that: |
+          'command-line-assistant' in ansible_facts.packages
+        fail_msg: "command-line-assistant needs to be installed. Run: dnf install command-line-assistant"
+
+    - name: lookup current rhsm endpoint
+      ansible.builtin.shell: "subscription-manager config | grep '^   hostname.=' | tr -d ' []' | cut -d= -f2-"
+      register: rhsm_endpoint
+      changed_when: false
+
+    - debug:
+        msg: "{{ rhsm_endpoint.stdout }}"
+
+    - set_fact:
+        cla_hostname: "{{ rhsm_endpoint.stdout }}"
+      when: "rhsm_endpoint.stdout != cdn_hostname"
+
+    - name: Ensure command-line assistant points to the endpoint
+      ansible.builtin.lineinfile:
+        path: /etc/xdg/command-line-assistant/config.toml
+        backup: true
+        regexp: '^endpoint ='
+        line: 'endpoint = "{{ cla_endpoint }}"'
+      notify: restart clad

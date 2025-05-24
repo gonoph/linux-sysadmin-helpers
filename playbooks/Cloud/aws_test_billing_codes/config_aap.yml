@@ -1,0 +1,68 @@
+- name: Create Credentials, Inventory, sources, project, and template
+  hosts: all
+  connection: local
+  become: false
+  vars_files:
+    - vault.yml
+
+  tasks:
+  - name: Add AWS credential
+    ansible.controller.credential:
+      name: Test AWS Credential
+      description: Credentials for AWS Testing
+      organization: "{{ AAP_ORG }}"
+      credential_type: Amazon Web Services
+      state: present
+      update_secrets: false
+      inputs:
+        username: "{{ EC2_USERNAME }}"
+        password: "{{ EC2_SECRET_KEY }}"
+    
+  - name: Create AWS Inventory
+    ansible.controller.inventory:
+      name: "Test AWS Inventory"
+      description: "Test AWS Inventory"
+      organization: "{{ AAP_ORG }}"
+      state: present
+      variables:
+        ansible_user: ec2-user
+
+  - name: Attach AWS Source
+    ansible.controller.inventory_source:
+      name: "AWS Test Source"
+      description: "Source for inventory"
+      inventory: "Test AWS Inventory"
+      credential: "Test AWS Credential"
+      overwrite: true
+      update_on_launch: true
+      organization: "{{ AAP_ORG }}"
+      source: ec2
+      source_vars:
+        compose:
+          ansible_host: public_ip_address
+        filters:
+          instance-state-name:
+          - running
+        groups:
+          ec2: false
+        hostnames:
+        - tag:Name
+        plugin: amazon.aws.aws_ec2
+        regions: []
+        use_contrib_script_compatible_sanitization: false
+
+  - name: Create Project
+    ansible.controller.project:
+      name: linux-sysadmin-helpers playbooks
+      organization: "{{ AAP_ORG }}"
+      scm_type: git
+      scm_url: https://github.com/gonoph/linux-sysadmin-helpers.git
+
+  - name: Create Template
+    ansible.controller.job_template:
+      name: AWS-Test-Billing-Codes
+      job_type: run
+      inventory: "Test AWS Inventory"
+      organization: "{{ AAP_ORG }}"
+      project: "linux-sysadmin-helpers playbooks"
+      playbook: "linux-sysadmin-helpers/playbooks/Cloud/aws_test_billing_codes/aws_test_billing_codes.yml"
