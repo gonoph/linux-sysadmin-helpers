@@ -9,10 +9,36 @@ You will need an inventory source, AWS credentials, and playbook.
 
 When you run it, it will error if any instances are not BYOS.
 
+1. install aws cli utility
+2. configure your aws credentials
+3. export the credentials
+4. install the amazon.aws collection
+5. run the playbook
+
 ```bash
-# setup BOTO3 credentials - not in scope for these instructions
+# install awscli2
+sudo dnf install awscli2
+# configure credentials
+aws configure
+# export it
+eval $(aws configure export-credentials --format env)
+# install the collection
 ansible-galaxy install amazon.aws
+# run the playbook
 ansible-playbook -i inventory.aws_ec2.yml aws_test_billing_codes.yml
+```
+
+If you're using ansible-navigator
+
+```bash
+# install awscli2
+sudo dnf install awscli2
+# configure credentials
+aws configure
+# export it
+eval $(aws configure export-credentials --format env)
+# run the playbook
+ansible-navigator run aws_test_billing_codes.yml -i inventory.aws_ec2.yml --penv AWS_ACCESS_KEY_ID --penv AWS_SECRET_ACCESS_KEY
 ```
 
 ## Usage - Ansible Automation Platform
