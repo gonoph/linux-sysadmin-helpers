@@ -63,7 +63,9 @@ ansible-vault encrypt vault.yml
 cat > vault_password.txt
 ```
 
-Install the ansible.controller collection
+***This step only required if not using ansible-navigator***
+
+Install the ansible.controller collection if not using ansible-navigator
 
 ```bash
 ansible-galaxy collection install ansible.controller

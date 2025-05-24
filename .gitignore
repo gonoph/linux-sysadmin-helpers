@@ -3,3 +3,4 @@
 tower_cli.cfg
 vault_password.txt
 vault.yml
+ansible-navigator.log
