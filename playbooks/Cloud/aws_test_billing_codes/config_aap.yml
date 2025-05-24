@@ -64,5 +64,7 @@
       job_type: run
       inventory: "Test AWS Inventory"
       organization: "{{ AAP_ORG }}"
+      credentials:
+        - "Test AWS Credential"
       project: "linux-sysadmin-helpers playbooks"
-      playbook: "linux-sysadmin-helpers/playbooks/Cloud/aws_test_billing_codes/aws_test_billing_codes.yml"
+      playbook: "playbooks/Cloud/aws_test_billing_codes/aws_test_billing_codes.yml"

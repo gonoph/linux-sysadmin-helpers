@@ -1,0 +1,9 @@
+---
+# You can run the config playbook like this as well:
+#   ansible-navigator run config_aap.yml -i localhost, --vault-password-file=vault_password.txt
+ansible-navigator:
+  execution-environment:
+    image: registry.redhat.io/ansible-automation-platform-24/ee-supported-rhel9:latest
+  mode: stdout
+  playbook-artifact:
+    enable: False

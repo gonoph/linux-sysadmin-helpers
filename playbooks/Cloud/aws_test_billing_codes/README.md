@@ -59,6 +59,8 @@ Encrypt the vault.
 
 ```bash
 ansible-vault encrypt vault.yml
+# Optionally create a vault-password file
+cat > vault_password.txt
 ```
 
 Install the ansible.controller collection
@@ -75,10 +77,24 @@ Run the playbook asking for the vault password
 ansible-playbook -i localhost, config_aap.yml --ask-vault-password
 ```
 
+If you want to use ansible-navigator, you need to use a vault file
+
+```bash
+ansible-navigator run config_aap.yml -i localhost, --vault-password-file=vault_password.txt
+```
+
 #### Finally run the job template on the AAP server
 
 ```bash
-ansible -i localhost, -c local -m -mansible.controller.job_launch -a job_template=AWS-Test-Billing-Codes all
+ansible -i localhost, -c local -mansible.controller.job_launch -a job_template=AWS-Test-Billing-Codes all
 ```
+
+or via ansible-navigator
+
+```bash
+ansible-navigator exec -- ansible -i localhost, -c local -mansible.controller.job_launch -a job_template=AWS-Test-Billing-Codes all
+```
+
+## FINISHED! Check the output!
 
 Navigate to your AAP server and view the output!
