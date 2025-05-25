@@ -2,6 +2,7 @@
   hosts: all
   connection: local
   become: false
+  gather_facts: false
   vars_files:
     - vault.yml
 
@@ -68,3 +69,44 @@
         - "Test AWS Credential"
       project: "linux-sysadmin-helpers playbooks"
       playbook: "playbooks/Cloud/aws_test_billing_codes/aws_test_billing_codes.yml"
+
+  - name: Run the newly created Template
+    ansible.controller.job_launch:
+      job_template: AWS-Test-Billing-Codes
+      wait: true
+    register: job
+
+  - name: Get job output
+    ansible.controller.job_list:
+      query:
+        id: "{{ job.id }}"
+    register: jobs
+
+  - name: extract tower credentials
+    set_fact:
+      url: "{{ lookup('ansible.builtin.ini', 'host', section='general', file='tower_cli.cfg') }}{{ jobs.results[0].related.stdout }}"
+      headers: "{{ {'Authorization': 'Bearer ' + ot} if ot else {} }}"
+      oauth_token: "{{ ot }}"
+      username: "{{ u if not ot else omit }}"
+      password: "{{ p if not ot else omit }}"
+      verify_ssl: "{{ ssl | bool if ssl else True }}"
+    vars:
+      ot: "{{ lookup('ansible.builtin.ini', 'oauth_token', section='general', file='tower_cli.cfg', allow_no_value=True) }}"
+      u: "{{ lookup('ansible.builtin.ini', 'username', section='general', file='tower_cli.cfg', allow_no_value=True) }}"
+      p: "{{ lookup('ansible.builtin.ini', 'password', section='general', file='tower_cli.cfg', allow_no_value=True) }}"
+      ssl: "{{ lookup('ansible.builtin.ini', 'verify_ssl', section='general', file='tower_cli.cfg', allow_no_value=True) }}"
+
+  - name: get stdout
+    uri:
+      url: "{{ url }}?format=txt_download"
+      method: GET
+      return_content: true
+      headers: "{{ headers }}"
+      user: "{{ username | default(omit) }}"
+      password: "{{ password | default(omit) }}"
+      validate_certs: "{{ verify_ssl }}"
+    register: job_output
+
+  - name: job output
+    debug:
+      msg: "{{ job_output.content | split('\n') }}"
