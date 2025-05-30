@@ -1,0 +1,18 @@
+#!/bin/bash
+
+RPMS=$(mktemp -d)
+eval "trap 'rm -rfv $RPMS' EXIT"
+
+download_rpms() {
+	# subshell so not to lose cwd
+	(
+	cd $RPMS
+	dnf download rh-amazon-rhui-client amazon-libdnf-plugin 1>/dev/null
+	echo *.rpm
+	)
+}
+
+RPM_NAMES=$(download_rpms)
+
+set -x
+podman build --build-arg=RPM_NAMES="$RPM_NAMES" --net=host --build-context RPMS=${RPMS} . -t localhost/test

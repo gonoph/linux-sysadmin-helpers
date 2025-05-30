@@ -1,0 +1,8 @@
+FROM registry.redhat.io/ubi10/ubi
+
+ARG	RPM_NAMES
+COPY	--from=RPMS ./ /tmp
+RUN	dnf config-manager --set-disable '*' \
+	&& cd /tmp \
+	&& rpm -ivh $RPM_NAMES
+RUN	dnf repolist
