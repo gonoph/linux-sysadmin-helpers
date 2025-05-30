@@ -1,0 +1,116 @@
+#!/bin/bash
+# vim: sw=4 ts=4 expandtab
+
+errexit() {
+    echo "Error:" "$@" 1>&2
+    exit 1
+}
+
+: ${DEFAULT_ZFSVER=zfs-2.3.2}
+: ${DEFAULT_RELEASEVER=9.6}
+: ${DEFAULT_RHELREPOS=codeready-builder-for-rhel-9-x86_64-eus-rpms rhel-9-for-x86_64-appstream-eus-rpms rhel-9-for-x86_64-baseos-eus-rpms}
+: ${DEFAULT_KERNEL=$(uname -r)}
+
+help() {
+    cat<<HELP
+Usage: $0 -hskzvr --help --kernel=? --zfsver=? --releasever=? --rhelrepos=?
+    -h | --help         : This help
+    -s | --skip         : Skip the update check (False)
+    -k | --kernel       : the kernel version to build against ($KERNEL)
+    -z | --zfsver       : the zfs release ($DEFAULT_ZFSVER)
+    -v | --releasever   : the RHEL minor version ($DEFAULT_RELEASEVER)
+    -r | --rhelrepos    : the list of RHEL repos
+    ($DEFAULT_RHELREPOS)
+HELP
+    exit 1
+}
+
+OPTS=$(getopt -o hsk:z:v:r: --long help,skip,kernel,zfsver,releasever,rhelrepos -n run -- "$@")
+
+test $? -ne 0 && errexit "Unable to parse arguments!"
+
+eval set -- "$OPTS"
+
+SKIP=False
+ZFSVER=
+RELEASEVER=
+RHELREPOS=
+KERNEL=$DEFAULT_KERNEL
+
+while true ; do
+    case "$1" in
+        -h | --help) help;;
+        -s | --skip)
+                SKIP=True
+                shift
+                ;;
+        -k | --kernel)
+            shift
+            KERNEL="$1"
+            shift
+            ;;
+        -z | --zfsver)
+            shift
+            ZFSVER="$1"
+            shift
+            ;;
+        -v | --releasever)
+            shift
+            RELEASEVER="$1"
+            shift
+            ;;
+        -r | --rhelrepos)
+            shift
+            RHELREPOS="$1"
+            shift
+            ;;
+        --)
+            shift
+            break
+            ;;
+        *)
+            errexit "Unrecognized paramters:" "$@"
+            ;;
+    esac
+done
+
+ARGS="--build-arg=KERNEL=$KERNEL "
+test -n "$ZFSVER" && ARGS+=" --build-arg=ZFSVER=$ZFSVER"
+test -n "$RELEASEVER" && ARGS+=" --build-arg=RELEASEVER=$RELEASEVER"
+test -n "$RELEASEVER" && ARGS+=" --build-arg=UBIVER=$RELEASEVER"
+test -n "$RHELREPOS" && ARGS+=" --build-arg=RHELREPOS=$RHELREPOS"
+
+echo -n "Checking if root: "
+test "$(id -u)" == "0" || errexit "You must be root in order to compile successfully!"
+echo "OK"
+
+echo -n "Checking for missing updates: "
+if [ "$SKIP" == "True" ] ; then
+        echo SKIPPED
+else
+        (dnf update --assumeno) 1> /dev/null 2>&1 || errexit "Updates need to be applied!"
+        echo "OK"
+fi
+
+set -e -x
+mkdir -p /tmp/zfs.cache
+podman build $ARGS -v /tmp/zfs.cache:/var/cache/dnf:z -t localhost/zfs:latest .
+buildah rm zfs || true
+buildah from --name zfs localhost/zfs:latest
+MNT=$(buildah mount zfs)
+rsync -avP $MNT/ /root/zfs-rpms/ --delete-after
+buildah umount zfs
+buildah rm zfs
+set +x
+cat<<'FINISHED'
+####################
+## ALL FINISHED
+## rpms should be in
+##    /root/zfs-rpms/
+##
+## This uses a dnf cache for multiple builds to speed things up.
+## If you are really done, then delete it:
+##
+##    /tmp/zfs.cache
+####################
+FINISHED

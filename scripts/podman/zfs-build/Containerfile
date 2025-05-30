@@ -1,0 +1,52 @@
+ARG	UBIVER=9.6
+FROM registry.redhat.io/ubi9/ubi:$UBIVER as SOURCES
+ARG	KERNEL
+ARG	ZFSVER=zfs-2.3.2
+ARG	RELEASEVER=9.6
+ARG	RHEL_REPOS="codeready-builder-for-rhel-9-x86_64-eus-rpms rhel-9-for-x86_64-appstream-eus-rpms rhel-9-for-x86_64-baseos-eus-rpms"
+
+RUN	dnf config-manager --set-disable '*' \
+	&& echo "$RHEL_REPOS" \
+	| xargs -n 1 echo --set-enable | xargs dnf config-manager \
+	&& echo "$RELEASEVER" > /etc/dnf/vars/releasever \
+	&& dnf update -y
+
+RUN	dnf -y install automake libtool rsync createrepo \
+	&& dnf install -y kernel-rpm-macros kernel-abi-stablelists rpm-build kernel-devel \
+	&& dnf install -y libaio-devel libattr-devel libblkid-devel libffi-devel libtirpc-devel \
+	libudev-devel libuuid-devel python3-cffi python3-devel python3-packaging
+
+RUN	TESTKERNEL="`basename $(rpm -q kernel-devel | tail -n 1 | rev) -leved-lenrek | rev`" \
+	&& if [ "$TESTKERNEL" != "$KERNEL" ] ; then \
+	echo "Kernel's don't match: container($TESTKERNEL) != host($KERNEL)"; \
+	false ; fi
+
+RUN	dnf -y install git
+
+RUN	mkdir -p /root \
+	&& cd /root \
+	&& git clone -b $ZFSVER https://github.com/openzfs/zfs.git
+
+WORKDIR	/root/zfs
+
+RUN	./autogen.sh \
+	&& ./configure --with-config=srpm \
+	&& make dist-gzip \
+	&& mkdir -p /root/rpmbuild/SPECS /root/rpmbuild/SOURCES \
+	&& mv -f rpm/redhat/zfs-kmod.spec rpm/redhat/zfs.spec ~/rpmbuild/SPECS \
+	&& mv -f $ZFSVER.tar.gz ~/rpmbuild/SOURCES
+
+FROM SOURCES as zfs-kmod
+RUN	rpmbuild -bb ~/rpmbuild/SPECS/zfs-kmod.spec
+
+FROM SOURCES as zfs
+RUN	rpmbuild -bb ~/rpmbuild/SPECS/zfs.spec
+
+FROM SOURCES as repo
+RUN	mkdir -p /tmp/repo/Packages
+COPY --from=zfs-kmod	/root/rpmbuild/RPMS/x86_64/ /tmp/repo/Packages/
+COPY --from=zfs		/root/rpmbuild/RPMS/x86_64/ /tmp/repo/Packages/
+RUN	cd /tmp/repo && createrepo .
+
+FROM scratch
+COPY --from=repo	/tmp/repo /
