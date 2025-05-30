@@ -5,3 +5,4 @@ vault_password.txt
 vault.yml
 ansible-navigator.log
 ansible.cfg
+.*.swp
