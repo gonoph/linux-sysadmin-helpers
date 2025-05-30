@@ -1,0 +1,5 @@
+[zfs-kmod]
+name=ZFS on Linux for EL$releasever - kmod
+baseurl=file:///root/src/zfs-rpms/
+enabled=1
+gpgcheck=0

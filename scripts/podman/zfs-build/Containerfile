@@ -1,5 +1,6 @@
 ARG	UBIVER=9.6
 FROM registry.redhat.io/ubi9/ubi:$UBIVER as SOURCES
+
 ARG	KERNEL
 ARG	ZFSVER=zfs-2.3.2
 ARG	RELEASEVER=9.6
@@ -14,14 +15,12 @@ RUN	dnf config-manager --set-disable '*' \
 RUN	dnf -y install automake libtool rsync createrepo \
 	&& dnf install -y kernel-rpm-macros kernel-abi-stablelists rpm-build kernel-devel \
 	&& dnf install -y libaio-devel libattr-devel libblkid-devel libffi-devel libtirpc-devel \
-	libudev-devel libuuid-devel python3-cffi python3-devel python3-packaging
+	libudev-devel libuuid-devel python3-cffi python3-devel python3-packaging git
 
 RUN	TESTKERNEL="`basename $(rpm -q kernel-devel | tail -n 1 | rev) -leved-lenrek | rev`" \
 	&& if [ "$TESTKERNEL" != "$KERNEL" ] ; then \
 	echo "Kernel's don't match: container($TESTKERNEL) != host($KERNEL)"; \
 	false ; fi
-
-RUN	dnf -y install git
 
 RUN	mkdir -p /root \
 	&& cd /root \
