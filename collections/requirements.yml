@@ -1,5 +1,8 @@
 ---
 collections:
+  - name: ansible.controller
+    source: https://cloud.redhat.com/api/automation-hub/
+    version: '<4.6'
   - name: amazon.aws
     source: https://galaxy.ansible.com/
     version: '==3.2.0'
