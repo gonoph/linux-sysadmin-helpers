@@ -13,21 +13,16 @@
     ansible_python_interpreter: "{{ ansible_playbook_python }}"
 
   tasks:
-    - name: get ami information 
-      amazon.aws.ec2_ami_info:
-        image_ids: "{{ image_id }}"
-        region: "{{ placement.region }}"
-      register: ami_info
-
     - debug:
-        var: ami_info
+        var: myvars
       when: 
         - debug is defined
-        - debug == True
+        - debug
+      vars:
+        myvars: "{{ hostvars[inventory_hostname] }}"
 
     - name: ensure ami usage
       assert:
         that:
-          - ami_info is defined
-          - ami_info.images is defined
-          - ami_info.images | selectattr('usage_operation', 'in', GoodInstances) | list | length
+          - usage_operation is defined
+          - usage_operation in GoodInstances
